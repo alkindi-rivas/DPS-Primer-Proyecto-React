@@ -49,13 +49,6 @@
       "title": "Entrega de primer proyecto de REACT",
       "status": "pendiente",
       "assignedTo": "1"
-    },
-    {
-      "id": "p8E3efKooKE",
-      "projectId": "fni0TgAGFLY",
-      "title": "Crear módulo de fechas en el sistema de gestión de proyectos",
-      "status": "pendiente",
-      "assignedTo": "2"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

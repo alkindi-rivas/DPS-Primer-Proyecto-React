@@ -11,27 +11,32 @@ const IconEdit = () => <svg className="w-5 h-5" fill="none" stroke="currentColor
 const IconArchive = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>;
 const IconRestore = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>;
 const IconUser = () => <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
+const IconMenu = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
+const IconClose = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
 
 export default function TickTickDashboard() {
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
-  const [usersDb, setUsersDb] = useState<any[]>([]); // Bóveda de usuarios
+  const [usersDb, setUsersDb] = useState<any[]>([]); 
   
   const [currentView, setCurrentView] = useState<"tasks" | "archived">("tasks");
   const [filterProjectId, setFilterProjectId] = useState<string | null>(null); 
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskProject, setNewTaskProject] = useState("");
-  const [newTaskAssignee, setNewTaskAssignee] = useState(""); // Nuevo estado: Delegación
+  const [newTaskAssignee, setNewTaskAssignee] = useState(""); 
   
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
   const [editTaskProjectId, setEditTaskProjectId] = useState("");
-  const [editTaskAssignee, setEditTaskAssignee] = useState(""); // Edición de delegado
+  const [editTaskAssignee, setEditTaskAssignee] = useState(""); 
 
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+
+  // Estado para Menú Móvil
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const router = useRouter();
 
@@ -48,7 +53,6 @@ export default function TickTickDashboard() {
 
   const fetchData = async (userRole: string, userId: string) => {
     try {
-      // Extraemos también a los usuarios para poder delegarles
       const [projRes, taskRes, usersRes] = await Promise.all([
         axios.get("http://localhost:3001/projects"),
         axios.get("http://localhost:3001/tasks"),
@@ -66,7 +70,6 @@ export default function TickTickDashboard() {
     } catch (error) { console.error(error); }
   };
 
-  /* ===================== LÓGICA DE TAREAS ===================== */
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle) return;
@@ -76,7 +79,6 @@ export default function TickTickDashboard() {
     }
     
     const targetProject = filterProjectId || newTaskProject;
-    // Si el gerente no elige a nadie, se la auto-asigna
     const assignee = newTaskAssignee || user.id; 
 
     const newTask = { 
@@ -133,7 +135,6 @@ export default function TickTickDashboard() {
       } catch (error) { console.error(error); }
   };
 
-  /* ===================== LÓGICA DE PROYECTOS ===================== */
   const handleQuickAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) { setIsAddingProject(false); return; }
@@ -181,25 +182,36 @@ export default function TickTickDashboard() {
     .sort((a,b) => a.status === 'completado' ? 1 : -1); 
 
   const activeProjectName = filterProjectId ? projects.find(p => p.id === filterProjectId)?.name : "Inbox";
-
   const activePendingTasksCount = tasks.filter(t => t.status === 'pendiente' && activeProjects.some(p => p.id === t.projectId)).length;
 
   return (
-    <div className="min-h-screen bg-[#fcfcfc] text-gray-900 flex flex-col md:flex-row font-sans antid">
+    <div className="min-h-screen bg-[#fcfcfc] text-gray-900 flex font-sans antid">
       
-      {/* SIDEBAR */}
-      <aside className="w-full md:w-64 bg-[#f4f4f4] border-b md:border-b-0 md:border-r border-gray-200 p-4 flex flex-col justify-between h-screen sticky top-0 overflow-y-auto">
+      {/* OVERLAY PARA MÓVIL */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        ></div>
+      )}
+
+      {/* SIDEBAR RESPONSIVO */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#f4f4f4] border-r border-gray-200 p-4 flex flex-col justify-between h-screen overflow-y-auto transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex-1 flex flex-col">
           <header className="flex items-center justify-between mb-8 px-2">
             <h2 className="text-xl font-bold text-gray-950 flex items-center gap-2">
                 <span className="w-3 h-3 bg-blue-600 rounded-full"></span>
                 EMKT <span className="text-blue-600 font-medium">Hub</span>
             </h2>
+            {/* Botón de cerrar solo en móvil */}
+            <button className="md:hidden text-gray-500 hover:text-gray-800" onClick={() => setIsMobileMenuOpen(false)}>
+              <IconClose />
+            </button>
           </header>
 
           <nav className="space-y-1 flex-1">
             <button 
-              onClick={() => { setFilterProjectId(null); setNewTaskProject(""); setCurrentView("tasks"); }}
+              onClick={() => { setFilterProjectId(null); setNewTaskProject(""); setCurrentView("tasks"); setIsMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!filterProjectId && currentView === 'tasks' ? "bg-blue-100/60 text-blue-800" : "text-gray-700 hover:bg-gray-200/50"}`}
             >
               <span className={!filterProjectId && currentView === 'tasks' ? "text-blue-600" : "text-gray-400"}><IconInbox /></span>
@@ -227,7 +239,7 @@ export default function TickTickDashboard() {
             {activeProjects.map(p => (
                 <div key={p.id} className="group relative w-full flex items-center">
                     <button 
-                      onClick={() => { setFilterProjectId(p.id); setCurrentView("tasks"); }}
+                      onClick={() => { setFilterProjectId(p.id); setCurrentView("tasks"); setIsMobileMenuOpen(false); }}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors pr-8 ${filterProjectId === p.id && currentView === 'tasks' ? "bg-gray-200 text-gray-950 font-semibold" : "text-gray-700 hover:bg-gray-200/50"}`}
                     >
                       <IconProject />
@@ -240,11 +252,10 @@ export default function TickTickDashboard() {
             ))}
           </nav>
 
-          {/* SECCIÓN DE ARCHIVADOS */}
           {user.role === 'gerente' && (
               <div className="mt-8 pt-4 border-t border-gray-200 border-dashed">
                   <button 
-                    onClick={() => setCurrentView("archived")}
+                    onClick={() => { setCurrentView("archived"); setIsMobileMenuOpen(false); }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'archived' ? "bg-gray-200 text-gray-950" : "text-gray-500 hover:bg-gray-200/50 hover:text-gray-800"}`}
                   >
                     <IconArchive />
@@ -261,8 +272,8 @@ export default function TickTickDashboard() {
           <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold uppercase text-lg border-2 border-white shadow-md">
             {user.username[0]}
           </div>
-          <div>
-            <div className="font-bold capitalize text-gray-950 text-sm">{user.username}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold capitalize text-gray-950 text-sm truncate">{user.username}</div>
             <button onClick={() => { localStorage.removeItem("userSession"); router.push("/"); }} className="text-xs text-red-500 hover:text-red-600 transition-colors font-medium p-0">
               Cerrar Sesión
             </button>
@@ -271,54 +282,64 @@ export default function TickTickDashboard() {
       </aside>
 
       {/* PANEL CENTRAL */}
-      <main className="flex-1 bg-white overflow-y-auto h-screen">
+      <main className="flex-1 bg-white overflow-y-auto h-screen w-full">
         
         {currentView === "tasks" ? (
             <>
-                <header className="border-b border-gray-100 p-6 flex items-center justify-between sticky top-0 bg-white z-10">
-                  <h1 className="text-2xl font-extrabold text-gray-1000 tracking-tight flex items-center gap-3">
-                    {filterProjectId && <IconProject />}
-                    {activeProjectName}
-                  </h1>
-                  <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full font-medium">
-                     Rendimiento: 
+                <header className="border-b border-gray-100 p-4 md:p-6 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm md:shadow-none">
+                  <div className="flex items-center gap-3">
+                    {/* Botón Hamburguesa en Móvil */}
+                    <button 
+                      onClick={() => setIsMobileMenuOpen(true)}
+                      className="md:hidden p-1 text-gray-500 hover:text-gray-800 focus:outline-none"
+                    >
+                      <IconMenu />
+                    </button>
+                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-1000 tracking-tight flex items-center gap-2">
+                      {filterProjectId && <IconProject />}
+                      <span className="truncate max-w-[150px] md:max-w-none">{activeProjectName}</span>
+                    </h1>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500 bg-gray-100 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-medium">
+                     <span className="hidden md:inline">Rendimiento:</span>
+                     <span className="md:hidden">Rend:</span>
                      <span className="font-bold text-green-600">
                         {visibleTasks.length === 0 ? 0 : Math.round((visibleTasks.filter(t => t.status === 'completado').length / visibleTasks.length) * 100)}%
                      </span>
                   </div>
                 </header>
 
-                <div className="p-6 md:p-8 max-w-5xl mx-auto">
+                <div className="p-4 md:p-8 max-w-5xl mx-auto">
                     {user.role === "gerente" && (
-                      <form onSubmit={handleQuickAdd} className="mb-8 flex flex-col md:flex-row gap-2 items-center w-full">
+                      <form onSubmit={handleQuickAdd} className="mb-6 md:mb-8 flex flex-col md:flex-row gap-3 items-center w-full">
                         <div className="relative w-full group flex-1">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-blue-500 transition-transform group-focus-within:scale-110">
                                 <IconPlus />
                             </div>
-                            <input type="text" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder={filterProjectId ? `Añadir tarea a ${activeProjectName}...` : "Escribe una tarea para el Inbox..."} className="w-full p-3 pl-12 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all shadow-inner hover:border-gray-300" disabled={editingTaskId !== null} />
+                            <input type="text" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder={filterProjectId ? `Añadir tarea...` : "Escribe una tarea..."} className="w-full p-3 pl-12 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all shadow-inner hover:border-gray-300" disabled={editingTaskId !== null} />
                         </div>
                         
-                        {!filterProjectId && (
-                            <select value={newTaskProject} onChange={(e) => setNewTaskProject(e.target.value)} className="w-full md:w-48 p-3 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all cursor-pointer" disabled={editingTaskId !== null}>
-                                <option value="">Proyecto...</option>
-                                {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                        )}
+                        <div className="flex w-full md:w-auto gap-2">
+                          {!filterProjectId && (
+                              <select value={newTaskProject} onChange={(e) => setNewTaskProject(e.target.value)} className="flex-1 md:w-48 p-3 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all cursor-pointer" disabled={editingTaskId !== null}>
+                                  <option value="">Proyecto...</option>
+                                  {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                              </select>
+                          )}
+                          <select 
+                              value={newTaskAssignee} 
+                              onChange={(e) => setNewTaskAssignee(e.target.value)} 
+                              className="flex-1 md:w-40 p-3 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all cursor-pointer" 
+                              disabled={editingTaskId !== null}
+                          >
+                              <option value="">Para mí</option>
+                              {usersDb.filter(u => u.id !== user.id).map(u => (
+                                  <option key={u.id} value={u.id}>{u.username}</option>
+                              ))}
+                          </select>
+                        </div>
 
-                        {/* NUEVO SELECTOR: Delegación de Tareas */}
-                        <select 
-                            value={newTaskAssignee} 
-                            onChange={(e) => setNewTaskAssignee(e.target.value)} 
-                            className="w-full md:w-40 p-3 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all cursor-pointer" 
-                            disabled={editingTaskId !== null}
-                        >
-                            <option value="">Para mí</option>
-                            {usersDb.filter(u => u.id !== user.id).map(u => (
-                                <option key={u.id} value={u.id}>{u.username}</option>
-                            ))}
-                        </select>
-
-                        <button type="submit" disabled={editingTaskId !== null} className="hidden md:block px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-xl transition-colors shadow-md">Crear</button>
+                        <button type="submit" disabled={editingTaskId !== null} className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-xl transition-colors shadow-md">Crear</button>
                       </form>
                     )}
 
@@ -330,42 +351,41 @@ export default function TickTickDashboard() {
                         const assignedUser = usersDb.find(u => u.id === task.assignedTo);
                         
                         return (
-                          <div key={task.id} className="group flex items-center gap-4 p-4 bg-white hover:bg-gray-50/50 rounded-xl transition-colors border border-transparent hover:border-gray-100 shadow-sm md:shadow-none hover:shadow-md">
+                          <div key={task.id} className="group flex items-start md:items-center gap-3 md:gap-4 p-4 bg-white hover:bg-gray-50/50 rounded-xl transition-colors border border-gray-100 shadow-sm hover:shadow-md">
                             {!isEditing && (
-                                <button onClick={() => handleToggleStatus(task)} className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center flex-shrink-0 ${isCompletada ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-500'}`}>
+                                <button onClick={() => handleToggleStatus(task)} className={`mt-1 md:mt-0 w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center flex-shrink-0 ${isCompletada ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-500'}`}>
                                     {isCompletada && <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
                                 </button>
                             )}
 
                             <div className="flex-1 min-w-0">
                                 {isEditing ? (
-                                    <div className="flex flex-col md:flex-row gap-2">
-                                        <input type="text" value={editTaskTitle} onChange={(e) => setEditTaskTitle(e.target.value)} className="w-full flex-1 p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"/>
-                                        {!filterProjectId && (
-                                            <select value={editTaskProjectId} onChange={(e) => setEditTaskProjectId(e.target.value)} className="w-full md:w-40 p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                                                {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    <div className="flex flex-col gap-2">
+                                        <input type="text" value={editTaskTitle} onChange={(e) => setEditTaskTitle(e.target.value)} className="w-full p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"/>
+                                        <div className="flex flex-col md:flex-row gap-2">
+                                            {!filterProjectId && (
+                                                <select value={editTaskProjectId} onChange={(e) => setEditTaskProjectId(e.target.value)} className="w-full md:w-1/2 p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                                    {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                </select>
+                                            )}
+                                            <select value={editTaskAssignee} onChange={(e) => setEditTaskAssignee(e.target.value)} className="w-full md:w-1/2 p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                                {usersDb.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
                                             </select>
-                                        )}
-                                        {/* Edición de asignación */}
-                                        <select value={editTaskAssignee} onChange={(e) => setEditTaskAssignee(e.target.value)} className="w-full md:w-32 p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                                            {usersDb.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
-                                        </select>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center flex-wrap gap-2">
-                                        <p className={`font-medium text-sm md:text-base transition-all ${isCompletada ? 'text-gray-400 line-through' : 'text-gray-950'}`}>{task.title}</p>
+                                    <div className="flex flex-col gap-1">
+                                        <p className={`font-medium text-sm md:text-base break-words transition-all ${isCompletada ? 'text-gray-400 line-through' : 'text-gray-950'}`}>{task.title}</p>
                                         
-{/* BADGES (Proyecto y Usuario) */}
-                                        <div className="flex items-center gap-2 mt-1 w-full">
+                                        <div className="flex flex-wrap items-center gap-2 mt-1 w-full">
                                             {!filterProjectId && taskProject && (
-                                                <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded">
-                                                    <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                                                <span className="inline-flex items-center gap-1.5 text-[10px] md:text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
                                                     {taskProject.name}
                                                 </span>
                                             )}
-                                            {/* Etiqueta visual Inteligente de Asignación */}
                                             {assignedUser && (
-                                                <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border ${
+                                                <span className={`inline-flex items-center gap-1 text-[10px] md:text-xs font-medium px-2 py-0.5 rounded border ${
                                                     assignedUser.id === user.id 
                                                     ? 'text-blue-700 bg-blue-50 border-blue-200' 
                                                     : 'text-purple-700 bg-purple-50 border-purple-200'
@@ -378,12 +398,18 @@ export default function TickTickDashboard() {
                                 )}
                             </div>
 
-                            <div className={`flex items-center gap-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                            <div className={`flex flex-col md:flex-row items-center gap-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-100 md:opacity-0 group-hover:opacity-100'}`}>
                                 {isEditing ? (
-                                    <><button onClick={() => handleSaveEditTask(task.id)} className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-bold">Guardar</button><button onClick={cancelEditingTask} className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm font-bold">Cancelar</button></>
+                                    <div className="flex flex-col md:flex-row gap-1 w-full mt-2 md:mt-0">
+                                      <button onClick={() => handleSaveEditTask(task.id)} className="w-full md:w-auto p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-xs font-bold">Guardar</button>
+                                      <button onClick={cancelEditingTask} className="w-full md:w-auto p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-xs font-bold">Cancelar</button>
+                                    </div>
                                 ) : (
                                     user.role === 'gerente' && (
-                                        <><button onClick={() => handleDeleteTask(task.id)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Eliminar tarea"><IconTrash /></button><button onClick={() => startEditingTask(task)} className="p-2 rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Editar tarea"><IconEdit /></button></>
+                                        <div className="flex gap-1">
+                                          <button onClick={() => handleDeleteTask(task.id)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Eliminar tarea"><IconTrash /></button>
+                                          <button onClick={() => startEditingTask(task)} className="p-2 rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Editar tarea"><IconEdit /></button>
+                                        </div>
                                     )
                                 )}
                             </div>
@@ -393,38 +419,40 @@ export default function TickTickDashboard() {
                     </div>
 
                     {visibleTasks.length === 0 && (
-                      <div className="text-center py-16 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
-                        <div className="text-5xl mb-4">🎉</div>
-                        <p className="font-bold text-gray-600">¡Todo limpio en {activeProjectName}!</p>
+                      <div className="text-center py-12 md:py-16 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 mt-4">
+                        <div className="text-4xl md:text-5xl mb-3 md:mb-4">🎉</div>
+                        <p className="font-bold text-gray-600 text-sm md:text-base">¡Todo limpio en {activeProjectName}!</p>
                       </div>
                     )}
                 </div>
             </>
         ) : (
             <>
-                <header className="border-b border-gray-100 p-6 flex items-center justify-between sticky top-0 bg-white z-10">
-                  <h1 className="text-2xl font-extrabold text-gray-1000 tracking-tight flex items-center gap-3">
+                <header className="border-b border-gray-100 p-4 md:p-6 flex items-center gap-3 sticky top-0 bg-white z-10 shadow-sm md:shadow-none">
+                  <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-1 text-gray-500 hover:text-gray-800">
+                    <IconMenu />
+                  </button>
+                  <h1 className="text-xl md:text-2xl font-extrabold text-gray-1000 tracking-tight flex items-center gap-2">
                     <IconArchive />
                     Bóveda de Archivados
                   </h1>
                 </header>
 
-                <div className="p-6 md:p-8 max-w-4xl mx-auto">
-                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-xl mb-8 text-sm">
+                <div className="p-4 md:p-8 max-w-4xl mx-auto">
+                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 md:p-4 rounded-xl mb-6 md:mb-8 text-xs md:text-sm">
                         <strong>Modo Histórico:</strong> Estos proyectos están ocultos de la operación diaria. Puedes restaurarlos para volver a trabajar en ellos o eliminarlos definitivamente.
                     </div>
 
                     <div className="space-y-3">
                         {archivedProjects.map(project => (
-                            <div key={project.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                            <div key={project.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-3">
                                     <IconProject />
-                                    <span className="font-bold text-gray-800">{project.name}</span>
-                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">ID: {project.id}</span>
+                                    <span className="font-bold text-gray-800 truncate">{project.name}</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => handleRestoreProject(project.id)} className="flex items-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-semibold transition-colors"><IconRestore /> Restaurar</button>
-                                    <button onClick={() => handlePermanentDeleteProject(project.id)} className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-sm font-semibold transition-colors"><IconTrash /> Eliminar</button>
+                                <div className="flex items-center gap-2 w-full md:w-auto">
+                                    <button onClick={() => handleRestoreProject(project.id)} className="flex-1 md:flex-none flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs md:text-sm font-semibold transition-colors"><IconRestore /> Restaurar</button>
+                                    <button onClick={() => handlePermanentDeleteProject(project.id)} className="flex-1 md:flex-none flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs md:text-sm font-semibold transition-colors"><IconTrash /> Eliminar</button>
                                 </div>
                             </div>
                         ))}
