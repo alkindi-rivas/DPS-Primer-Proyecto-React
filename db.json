@@ -1,0 +1,42 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "username": "alkindi",
+      "password": "admin123",
+      "role": "gerente"
+    },
+    {
+      "id": "2",
+      "username": "colaborador",
+      "password": "user123",
+      "role": "usuario"
+    }
+  ],
+  "projects": [
+    {
+      "id": "1",
+      "name": "Proyecto Universidad"
+    },
+    {
+      "id": "2",
+      "name": "Empressa - Operaciones"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "1",
+      "projectId": "1",
+      "title": "Diseñar Dashboard",
+      "status": "pendiente",
+      "assignedTo": "1"
+    },
+    {
+      "id": "2",
+      "projectId": "2",
+      "title": "Enviar reporte",
+      "status": "completado",
+      "assignedTo": "2"
+    }
+  ]
+}
