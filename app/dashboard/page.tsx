@@ -3,23 +3,36 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
-export default function Dashboard() {
+const IconInbox = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v5m16 0h-2.586a1 1 0 01-.707-.293l-2.414-2.414a1 1 0 00-.707-.293h-3.172a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293H4" /></svg>;
+const IconProject = () => <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>;
+const IconPlus = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
+const IconTrash = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
+const IconEdit = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>;
+const IconArchive = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>;
+const IconRestore = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>;
+const IconUser = () => <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
+
+export default function TickTickDashboard() {
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [usersDb, setUsersDb] = useState<any[]>([]); // Bóveda de usuarios
   
-  const [activeTab, setActiveTab] = useState<"tareas" | "proyectos">("tareas");
+  const [currentView, setCurrentView] = useState<"tasks" | "archived">("tasks");
+  const [filterProjectId, setFilterProjectId] = useState<string | null>(null); 
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskProject, setNewTaskProject] = useState("");
+  const [newTaskAssignee, setNewTaskAssignee] = useState(""); // Nuevo estado: Delegación
+  
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
   const [editTaskProjectId, setEditTaskProjectId] = useState("");
+  const [editTaskAssignee, setEditTaskAssignee] = useState(""); // Edición de delegado
 
+  const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [editProjectName, setEditProjectName] = useState("");
-  
+
   const router = useRouter();
 
   useEffect(() => {
@@ -35,11 +48,15 @@ export default function Dashboard() {
 
   const fetchData = async (userRole: string, userId: string) => {
     try {
-      const [projRes, taskRes] = await Promise.all([
+      // Extraemos también a los usuarios para poder delegarles
+      const [projRes, taskRes, usersRes] = await Promise.all([
         axios.get("http://localhost:3001/projects"),
-        axios.get("http://localhost:3001/tasks")
+        axios.get("http://localhost:3001/tasks"),
+        axios.get("http://localhost:3001/users")
       ]);
       setProjects(projRes.data);
+      setUsersDb(usersRes.data);
+      
       if (userRole === "gerente") {
         setTasks(taskRes.data);
       } else {
@@ -49,219 +66,373 @@ export default function Dashboard() {
     } catch (error) { console.error(error); }
   };
 
-  const handleCreateTask = async (e: React.FormEvent) => {
+  /* ===================== LÓGICA DE TAREAS ===================== */
+  const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle || !newTaskProject) return;
-    const newTask = { id: Date.now().toString(), projectId: newTaskProject, title: newTaskTitle, status: "pendiente", assignedTo: user.id };
+    if (!newTaskTitle) return;
+    if (!filterProjectId && !newTaskProject) {
+        alert("Por favor, selecciona a qué proyecto pertenece esta tarea.");
+        return;
+    }
+    
+    const targetProject = filterProjectId || newTaskProject;
+    // Si el gerente no elige a nadie, se la auto-asigna
+    const assignee = newTaskAssignee || user.id; 
+
+    const newTask = { 
+        id: Date.now().toString(), 
+        projectId: targetProject, 
+        title: newTaskTitle, 
+        status: "pendiente", 
+        assignedTo: assignee 
+    };
+    
     try {
       const res = await axios.post("http://localhost:3001/tasks", newTask);
       setTasks([...tasks, res.data]); 
-      setNewTaskTitle(""); setNewTaskProject("");
+      setNewTaskTitle(""); 
+      setNewTaskProject(""); 
+      setNewTaskAssignee("");
     } catch (error) { console.error(error); }
   };
 
-  const handleUpdateStatus = async (taskId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'pendiente' ? 'completado' : 'pendiente';
+  const handleToggleStatus = async (task: any) => {
+    const newStatus = task.status === 'pendiente' ? 'completado' : 'pendiente';
     try {
-      await axios.patch(`http://localhost:3001/tasks/${taskId}`, { status: newStatus });
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
-    } catch (error) { console.error(error); }
-  };
-
-  const startEditingTask = (task: any) => { setEditingTaskId(task.id); setEditTaskTitle(task.title); setEditTaskProjectId(task.projectId); };
-  const cancelEditingTask = () => { setEditingTaskId(null); setEditTaskTitle(""); setEditTaskProjectId(""); };
-
-  const handleSaveEditTask = async (taskId: string) => {
-    if (!editTaskTitle || !editTaskProjectId) return;
-    try {
-      const res = await axios.patch(`http://localhost:3001/tasks/${taskId}`, { title: editTaskTitle, projectId: editTaskProjectId });
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, ...res.data } : t));
-      cancelEditingTask();
-    } catch (error) { console.error(error); }
+      setTasks(tasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+      await axios.patch(`http://localhost:3001/tasks/${task.id}`, { status: newStatus });
+    } catch (error) { 
+        console.error(error);
+        setTasks(tasks.map(t => t.id === task.id ? { ...t, status: task.status } : t));
+    }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!window.confirm("¿Eliminar esta tarea de la matriz?")) return;
     try { await axios.delete(`http://localhost:3001/tasks/${taskId}`); setTasks(tasks.filter(t => t.id !== taskId)); } catch (error) { console.error(error); }
   };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
+  const startEditingTask = (task: any) => { 
+      setEditingTaskId(task.id); 
+      setEditTaskTitle(task.title); 
+      setEditTaskProjectId(task.projectId); 
+      setEditTaskAssignee(task.assignedTo);
+  };
+  const cancelEditingTask = () => { 
+      setEditingTaskId(null); setEditTaskTitle(""); setEditTaskProjectId(""); setEditTaskAssignee("");
+  };
+  const handleSaveEditTask = async (taskId: string) => {
+      if (!editTaskTitle || !editTaskProjectId || !editTaskAssignee) return;
+      try {
+        const res = await axios.patch(`http://localhost:3001/tasks/${taskId}`, { 
+            title: editTaskTitle, 
+            projectId: editTaskProjectId,
+            assignedTo: editTaskAssignee
+        });
+        setTasks(tasks.map(t => t.id === taskId ? { ...t, ...res.data } : t));
+        cancelEditingTask();
+      } catch (error) { console.error(error); }
+  };
+
+  /* ===================== LÓGICA DE PROYECTOS ===================== */
+  const handleQuickAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProjectName) return;
+    if (!newProjectName.trim()) { setIsAddingProject(false); return; }
     try {
-      const res = await axios.post("http://localhost:3001/projects", { id: Date.now().toString(), name: newProjectName });
-      setProjects([...projects, res.data]); setNewProjectName("");
+      const res = await axios.post("http://localhost:3001/projects", { id: Date.now().toString(), name: newProjectName.trim(), isArchived: false });
+      setProjects([...projects, res.data]);
+      setNewProjectName(""); setIsAddingProject(false); 
     } catch (error) { console.error(error); }
   };
 
-  const startEditingProject = (project: any) => { setEditingProjectId(project.id); setEditProjectName(project.name); };
-  const cancelEditingProject = () => { setEditingProjectId(null); setEditProjectName(""); };
-
-  const handleSaveEditProject = async (projectId: string) => {
-    if (!editProjectName) return;
-    try {
-      const res = await axios.patch(`http://localhost:3001/projects/${projectId}`, { name: editProjectName });
-      setProjects(projects.map(p => p.id === projectId ? { ...p, ...res.data } : p));
-      cancelEditingProject();
-    } catch (error) { console.error(error); }
+  const handleArchiveProject = async (projectId: string) => {
+      if (!window.confirm("¿Archivar este proyecto? Dejará de verse en la lista principal.")) return;
+      try {
+          const res = await axios.patch(`http://localhost:3001/projects/${projectId}`, { isArchived: true });
+          setProjects(projects.map(p => p.id === projectId ? { ...p, ...res.data } : p));
+          if (filterProjectId === projectId) { setFilterProjectId(null); setCurrentView("tasks"); }
+      } catch (error) { console.error(error); }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!window.confirm("ATENCIÓN: ¿Eliminar este proyecto? Las tareas asociadas podrían quedar huérfanas.")) return;
-    try { await axios.delete(`http://localhost:3001/projects/${projectId}`); setProjects(projects.filter(p => p.id !== projectId)); } catch (error) { console.error(error); }
+  const handleRestoreProject = async (projectId: string) => {
+      try {
+          const res = await axios.patch(`http://localhost:3001/projects/${projectId}`, { isArchived: false });
+          setProjects(projects.map(p => p.id === projectId ? { ...p, ...res.data } : p));
+      } catch (error) { console.error(error); }
   };
 
-  if (!user) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-blue-600 font-bold uppercase tracking-widest">Verificando credenciales...</div>;
+  const handlePermanentDeleteProject = async (projectId: string) => {
+      if (!window.confirm("⚠️ ¿ELIMINAR DEFINITIVAMENTE? Esta acción no se puede deshacer y las tareas asociadas quedarán huérfanas.")) return;
+      try {
+          await axios.delete(`http://localhost:3001/projects/${projectId}`);
+          setProjects(projects.filter(p => p.id !== projectId));
+      } catch (error) { console.error(error); }
+  };
 
-  // CÁLCULO ESTRATÉGICO DE RENDIMIENTO
-  const completedTasks = tasks.filter(t => t.status === 'completado').length;
-  const totalTasks = tasks.length;
-  const performance = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+  if (!user) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-blue-600 font-bold uppercase tracking-widest">Iniciando sistema...</div>;
 
-  // DETERMINAR COLOR DEL INDICADOR
-  let performanceColor = "text-green-500";
-  if (performance < 50) performanceColor = "text-red-500";
-  else if (performance < 80) performanceColor = "text-yellow-500";
+  const activeProjects = projects.filter(p => !p.isArchived);
+  const archivedProjects = projects.filter(p => p.isArchived);
+
+  const visibleTasks = tasks
+    .filter(t => {
+      if (filterProjectId) return t.projectId === filterProjectId;
+      else return activeProjects.some(p => p.id === t.projectId);
+    })
+    .sort((a,b) => a.status === 'completado' ? 1 : -1); 
+
+  const activeProjectName = filterProjectId ? projects.find(p => p.id === filterProjectId)?.name : "Inbox";
+
+  const activePendingTasksCount = tasks.filter(t => t.status === 'pendiente' && activeProjects.some(p => p.id === t.projectId)).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#fcfcfc] text-gray-900 flex flex-col md:flex-row font-sans antid">
       
-      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200 p-6 flex flex-col justify-between shadow-sm">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 tracking-wide">EMKT <span className="text-blue-600">Hub</span></h2>
-          <nav className="space-y-3">
-            <button onClick={() => setActiveTab("tareas")} className={`w-full text-left block p-3 rounded font-semibold transition-all ${activeTab === "tareas" ? "bg-blue-50 text-blue-700 border border-blue-100" : "hover:bg-gray-100 text-gray-600"}`}>📊 Dashboard (Tareas)</button>
-            <button onClick={() => setActiveTab("proyectos")} className={`w-full text-left block p-3 rounded font-semibold transition-all ${activeTab === "proyectos" ? "bg-blue-50 text-blue-700 border border-blue-100" : "hover:bg-gray-100 text-gray-600"}`}>📁 Mis Proyectos</button>
+      {/* SIDEBAR */}
+      <aside className="w-full md:w-64 bg-[#f4f4f4] border-b md:border-b-0 md:border-r border-gray-200 p-4 flex flex-col justify-between h-screen sticky top-0 overflow-y-auto">
+        <div className="flex-1 flex flex-col">
+          <header className="flex items-center justify-between mb-8 px-2">
+            <h2 className="text-xl font-bold text-gray-950 flex items-center gap-2">
+                <span className="w-3 h-3 bg-blue-600 rounded-full"></span>
+                EMKT <span className="text-blue-600 font-medium">Hub</span>
+            </h2>
+          </header>
+
+          <nav className="space-y-1 flex-1">
+            <button 
+              onClick={() => { setFilterProjectId(null); setNewTaskProject(""); setCurrentView("tasks"); }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!filterProjectId && currentView === 'tasks' ? "bg-blue-100/60 text-blue-800" : "text-gray-700 hover:bg-gray-200/50"}`}
+            >
+              <span className={!filterProjectId && currentView === 'tasks' ? "text-blue-600" : "text-gray-400"}><IconInbox /></span>
+              Inbox
+              <span className="ml-auto text-xs font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
+                {activePendingTasksCount}
+              </span>
+            </button>
+
+            <div className="pt-6 pb-2 px-3 text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
+                Proyectos
+                {user.role === 'gerente' && (
+                    <button onClick={() => setIsAddingProject(true)} className="text-gray-400 hover:text-blue-600 transition-colors" title="Añadir nuevo proyecto">
+                        <IconPlus />
+                    </button>
+                )}
+            </div>
+            
+            {isAddingProject && (
+                <form onSubmit={handleQuickAddProject} className="px-2 mb-2">
+                    <input autoFocus type="text" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} onBlur={() => { if(!newProjectName) setIsAddingProject(false); }} placeholder="Nombre del proyecto..." className="w-full p-2 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                </form>
+            )}
+
+            {activeProjects.map(p => (
+                <div key={p.id} className="group relative w-full flex items-center">
+                    <button 
+                      onClick={() => { setFilterProjectId(p.id); setCurrentView("tasks"); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors pr-8 ${filterProjectId === p.id && currentView === 'tasks' ? "bg-gray-200 text-gray-950 font-semibold" : "text-gray-700 hover:bg-gray-200/50"}`}
+                    >
+                      <IconProject />
+                      <span className="truncate">{p.name}</span>
+                    </button>
+                    {user.role === 'gerente' && (
+                        <button onClick={() => handleArchiveProject(p.id)} className="absolute right-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-yellow-600 transition-opacity p-1" title="Archivar proyecto"><IconArchive /></button>
+                    )}
+                </div>
+            ))}
           </nav>
+
+          {/* SECCIÓN DE ARCHIVADOS */}
+          {user.role === 'gerente' && (
+              <div className="mt-8 pt-4 border-t border-gray-200 border-dashed">
+                  <button 
+                    onClick={() => setCurrentView("archived")}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'archived' ? "bg-gray-200 text-gray-950" : "text-gray-500 hover:bg-gray-200/50 hover:text-gray-800"}`}
+                  >
+                    <IconArchive />
+                    Proyectos Archivados
+                    {archivedProjects.length > 0 && (
+                        <span className="ml-auto text-xs font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">{archivedProjects.length}</span>
+                    )}
+                  </button>
+              </div>
+          )}
         </div>
         
-        <div className="mt-8 md:mt-0 pt-6 border-t border-gray-200">
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Operador Activo</div>
-          <div className="font-bold capitalize text-green-600 truncate">{user.username} <span className="text-gray-400 text-sm font-normal">({user.role})</span></div>
-          <button onClick={() => { localStorage.removeItem("userSession"); router.push("/"); }} className="mt-4 text-sm w-full text-left text-red-500 hover:text-red-600 transition-colors font-medium flex items-center gap-2">Cerrar Sesión</button>
+        <div className="mt-6 pt-4 border-t border-gray-200 px-2 flex items-center gap-3 flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold uppercase text-lg border-2 border-white shadow-md">
+            {user.username[0]}
+          </div>
+          <div>
+            <div className="font-bold capitalize text-gray-950 text-sm">{user.username}</div>
+            <button onClick={() => { localStorage.removeItem("userSession"); router.push("/"); }} className="text-xs text-red-500 hover:text-red-600 transition-colors font-medium p-0">
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
       </aside>
 
-      <main className="flex-1 p-6 md:p-10">
+      {/* PANEL CENTRAL */}
+      <main className="flex-1 bg-white overflow-y-auto h-screen">
         
-        {activeTab === "tareas" && (
-          <div className="animate-fadeIn">
-            <header className="mb-10">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Vista General de Tareas</h1>
-              <p className="text-gray-500 mt-2 text-sm md:text-base">{user.role === 'gerente' ? "Modo Gerente: Control absoluto de la operación." : "Modo Usuario: Tareas asignadas a ti."}</p>
-            </header>
+        {currentView === "tasks" ? (
+            <>
+                <header className="border-b border-gray-100 p-6 flex items-center justify-between sticky top-0 bg-white z-10">
+                  <h1 className="text-2xl font-extrabold text-gray-1000 tracking-tight flex items-center gap-3">
+                    {filterProjectId && <IconProject />}
+                    {activeProjectName}
+                  </h1>
+                  <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full font-medium">
+                     Rendimiento: 
+                     <span className="font-bold text-green-600">
+                        {visibleTasks.length === 0 ? 0 : Math.round((visibleTasks.filter(t => t.status === 'completado').length / visibleTasks.length) * 100)}%
+                     </span>
+                  </div>
+                </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm"><h3 className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3">Proyectos Activos</h3><span className="text-4xl font-black text-blue-600">{projects.length}</span></div>
-               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm"><h3 className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3">Tareas Visibles</h3><span className="text-4xl font-black text-yellow-500">{tasks.length}</span></div>
-               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                 <h3 className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3">Rendimiento</h3>
-                 {/* EL NÚMERO AHORA ES DINÁMICO */}
-                 <span className={`text-4xl font-black ${performanceColor}`}>{performance}%</span>
-               </div>
-            </div>
-            
-            {user.role === "gerente" && (
-              <form onSubmit={handleCreateTask} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 flex flex-col md:flex-row gap-4 items-end">
-                <div className="w-full md:w-1/2">
-                  <label className="block text-gray-600 text-xs font-bold mb-2 uppercase tracking-wider">Nueva Tarea</label>
-                  <input type="text" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Ej. Realizar reporte SEO" className="w-full p-3 rounded bg-gray-50 text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500" required />
-                </div>
-                <div className="w-full md:w-1/3">
-                  <label className="block text-gray-600 text-xs font-bold mb-2 uppercase tracking-wider">Proyecto</label>
-                  <select value={newTaskProject} onChange={(e) => setNewTaskProject(e.target.value)} className="w-full p-3 rounded bg-gray-50 text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500" required>
-                    <option value="">Selecciona un proyecto...</option>
-                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-                <button type="submit" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded shadow-md">Crear</button>
-              </form>
-            )}
+                <div className="p-6 md:p-8 max-w-5xl mx-auto">
+                    {user.role === "gerente" && (
+                      <form onSubmit={handleQuickAdd} className="mb-8 flex flex-col md:flex-row gap-2 items-center w-full">
+                        <div className="relative w-full group flex-1">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-blue-500 transition-transform group-focus-within:scale-110">
+                                <IconPlus />
+                            </div>
+                            <input type="text" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder={filterProjectId ? `Añadir tarea a ${activeProjectName}...` : "Escribe una tarea para el Inbox..."} className="w-full p-3 pl-12 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all shadow-inner hover:border-gray-300" disabled={editingTaskId !== null} />
+                        </div>
+                        
+                        {!filterProjectId && (
+                            <select value={newTaskProject} onChange={(e) => setNewTaskProject(e.target.value)} className="w-full md:w-48 p-3 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all cursor-pointer" disabled={editingTaskId !== null}>
+                                <option value="">Proyecto...</option>
+                                {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        )}
 
-            <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Registro de Operaciones</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider"><th className="p-4 rounded-tl-lg font-semibold w-1/3">Tarea</th><th className="p-4 font-semibold w-1/4">Proyecto</th><th className="p-4 font-semibold w-1/6">Estado</th><th className="p-4 rounded-tr-lg font-semibold text-right">Acciones</th></tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {tasks.map((task) => {
-                      const isEditing = editingTaskId === task.id;
-                      const projectName = projects.find(p => p.id === task.projectId)?.name || "Desconocido";
-                      return (
-                        <tr key={task.id} className="hover:bg-gray-50">
-                          <td className="p-4 font-medium text-gray-900">{isEditing ? <input type="text" value={editTaskTitle} onChange={(e) => setEditTaskTitle(e.target.value)} className="w-full p-2 border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"/> : task.title}</td>
-                          <td className="p-4 text-gray-600">{isEditing ? <select value={editTaskProjectId} onChange={(e) => setEditTaskProjectId(e.target.value)} className="w-full p-2 border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : projectName}</td>
-                          <td className="p-4"><button onClick={() => handleUpdateStatus(task.id, task.status)} className={`px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors ${task.status === 'completado' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`} disabled={isEditing}>{task.status}</button></td>
-                          <td className="p-4 text-right space-x-3">
-                            {isEditing ? (
-                              <><button onClick={() => handleSaveEditTask(task.id)} className="text-green-600 hover:text-green-800 font-medium text-sm">Guardar</button><button onClick={cancelEditingTask} className="text-gray-500 hover:text-gray-700 font-medium text-sm">Cancelar</button></>
-                            ) : (
-                              user.role === 'gerente' && (
-                                <><button onClick={() => startEditingTask(task)} className="text-blue-600 hover:text-blue-800 font-medium text-sm">Editar</button><button onClick={() => handleDeleteTask(task.id)} className="text-red-500 hover:text-red-700 font-medium text-sm">Eliminar</button></>
-                              )
+                        {/* NUEVO SELECTOR: Delegación de Tareas */}
+                        <select 
+                            value={newTaskAssignee} 
+                            onChange={(e) => setNewTaskAssignee(e.target.value)} 
+                            className="w-full md:w-40 p-3 rounded-xl bg-gray-100/50 border border-gray-200 text-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white focus:border-blue-300 transition-all cursor-pointer" 
+                            disabled={editingTaskId !== null}
+                        >
+                            <option value="">Para mí</option>
+                            {usersDb.filter(u => u.id !== user.id).map(u => (
+                                <option key={u.id} value={u.id}>{u.username}</option>
+                            ))}
+                        </select>
+
+                        <button type="submit" disabled={editingTaskId !== null} className="hidden md:block px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-xl transition-colors shadow-md">Crear</button>
+                      </form>
+                    )}
+
+                    <div className="space-y-2">
+                      {visibleTasks.map((task) => {
+                        const isCompletada = task.status === 'completado';
+                        const taskProject = projects.find(p => p.id === task.projectId);
+                        const isEditing = editingTaskId === task.id;
+                        const assignedUser = usersDb.find(u => u.id === task.assignedTo);
+                        
+                        return (
+                          <div key={task.id} className="group flex items-center gap-4 p-4 bg-white hover:bg-gray-50/50 rounded-xl transition-colors border border-transparent hover:border-gray-100 shadow-sm md:shadow-none hover:shadow-md">
+                            {!isEditing && (
+                                <button onClick={() => handleToggleStatus(task)} className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center flex-shrink-0 ${isCompletada ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-500'}`}>
+                                    {isCompletada && <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                                </button>
                             )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+
+                            <div className="flex-1 min-w-0">
+                                {isEditing ? (
+                                    <div className="flex flex-col md:flex-row gap-2">
+                                        <input type="text" value={editTaskTitle} onChange={(e) => setEditTaskTitle(e.target.value)} className="w-full flex-1 p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"/>
+                                        {!filterProjectId && (
+                                            <select value={editTaskProjectId} onChange={(e) => setEditTaskProjectId(e.target.value)} className="w-full md:w-40 p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                                {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
+                                        )}
+                                        {/* Edición de asignación */}
+                                        <select value={editTaskAssignee} onChange={(e) => setEditTaskAssignee(e.target.value)} className="w-full md:w-32 p-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                            {usersDb.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
+                                        </select>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center flex-wrap gap-2">
+                                        <p className={`font-medium text-sm md:text-base transition-all ${isCompletada ? 'text-gray-400 line-through' : 'text-gray-950'}`}>{task.title}</p>
+                                        
+{/* BADGES (Proyecto y Usuario) */}
+                                        <div className="flex items-center gap-2 mt-1 w-full">
+                                            {!filterProjectId && taskProject && (
+                                                <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded">
+                                                    <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                                                    {taskProject.name}
+                                                </span>
+                                            )}
+                                            {/* Etiqueta visual Inteligente de Asignación */}
+                                            {assignedUser && (
+                                                <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border ${
+                                                    assignedUser.id === user.id 
+                                                    ? 'text-blue-700 bg-blue-50 border-blue-200' 
+                                                    : 'text-purple-700 bg-purple-50 border-purple-200'
+                                                }`}>
+                                                    <IconUser /> {assignedUser.id === user.id ? `Tú (${assignedUser.username})` : assignedUser.username}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={`flex items-center gap-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                {isEditing ? (
+                                    <><button onClick={() => handleSaveEditTask(task.id)} className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-bold">Guardar</button><button onClick={cancelEditingTask} className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm font-bold">Cancelar</button></>
+                                ) : (
+                                    user.role === 'gerente' && (
+                                        <><button onClick={() => handleDeleteTask(task.id)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Eliminar tarea"><IconTrash /></button><button onClick={() => startEditingTask(task)} className="p-2 rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Editar tarea"><IconEdit /></button></>
+                                    )
+                                )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {visibleTasks.length === 0 && (
+                      <div className="text-center py-16 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                        <div className="text-5xl mb-4">🎉</div>
+                        <p className="font-bold text-gray-600">¡Todo limpio en {activeProjectName}!</p>
+                      </div>
+                    )}
+                </div>
+            </>
+        ) : (
+            <>
+                <header className="border-b border-gray-100 p-6 flex items-center justify-between sticky top-0 bg-white z-10">
+                  <h1 className="text-2xl font-extrabold text-gray-1000 tracking-tight flex items-center gap-3">
+                    <IconArchive />
+                    Bóveda de Archivados
+                  </h1>
+                </header>
+
+                <div className="p-6 md:p-8 max-w-4xl mx-auto">
+                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-xl mb-8 text-sm">
+                        <strong>Modo Histórico:</strong> Estos proyectos están ocultos de la operación diaria. Puedes restaurarlos para volver a trabajar en ellos o eliminarlos definitivamente.
+                    </div>
+
+                    <div className="space-y-3">
+                        {archivedProjects.map(project => (
+                            <div key={project.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-3">
+                                    <IconProject />
+                                    <span className="font-bold text-gray-800">{project.name}</span>
+                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">ID: {project.id}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleRestoreProject(project.id)} className="flex items-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-semibold transition-colors"><IconRestore /> Restaurar</button>
+                                    <button onClick={() => handlePermanentDeleteProject(project.id)} className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-sm font-semibold transition-colors"><IconTrash /> Eliminar</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </>
         )}
 
-        {activeTab === "proyectos" && (
-          <div className="animate-fadeIn">
-            <header className="mb-10">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Gestión de Proyectos</h1>
-              <p className="text-gray-500 mt-2 text-sm md:text-base">Administración de las carpetas base del sistema.</p>
-            </header>
-
-            {user.role === "gerente" && (
-              <form onSubmit={handleCreateProject} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 flex flex-col md:flex-row gap-4 items-end">
-                <div className="w-full flex-1">
-                  <label className="block text-gray-600 text-xs font-bold mb-2 uppercase tracking-wider">Nuevo Proyecto</label>
-                  <input type="text" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} placeholder="Ej. Lanzamiento Web Cliente" className="w-full p-3 rounded bg-gray-50 text-gray-900 border border-gray-300 focus:outline-none focus:border-blue-500" required />
-                </div>
-                <button type="submit" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded shadow-md">Crear Proyecto</button>
-              </form>
-            )}
-
-            <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Directorio de Proyectos</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider"><th className="p-4 rounded-tl-lg font-semibold">ID Proyecto</th><th className="p-4 font-semibold w-1/2">Nombre del Proyecto</th><th className="p-4 rounded-tr-lg font-semibold text-right">Acciones</th></tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {projects.map((project) => {
-                      const isEditing = editingProjectId === project.id;
-                      return (
-                        <tr key={project.id} className="hover:bg-gray-50">
-                          <td className="p-4 text-gray-500 text-sm">#{project.id}</td>
-                          <td className="p-4 font-medium text-gray-900">{isEditing ? <input type="text" value={editProjectName} onChange={(e) => setEditProjectName(e.target.value)} className="w-full p-2 border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"/> : project.name}</td>
-                          <td className="p-4 text-right space-x-3">
-                            {isEditing ? (
-                              <><button onClick={() => handleSaveEditProject(project.id)} className="text-green-600 font-medium text-sm">Guardar</button><button onClick={cancelEditingProject} className="text-gray-500 font-medium text-sm">Cancelar</button></>
-                            ) : (
-                              user.role === 'gerente' && (
-                                <><button onClick={() => startEditingProject(project)} className="text-blue-600 hover:text-blue-800 font-medium text-sm">Renombrar</button><button onClick={() => handleDeleteProject(project.id)} className="text-red-500 hover:text-red-700 font-medium text-sm">Eliminar</button></>
-                              )
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );

@@ -21,6 +21,11 @@
     {
       "id": "2",
       "name": "Empresa - Operaciones"
+    },
+    {
+      "id": "fni0TgAGFLY",
+      "name": "DPS",
+      "isArchived": false
     }
   ],
   "tasks": [
@@ -28,13 +33,27 @@
       "id": "1",
       "projectId": "1",
       "title": "Diseñar Dashboard",
-      "status": "completado",
+      "status": "pendiente",
       "assignedTo": "1"
     },
     {
       "id": "2",
       "projectId": "2",
-      "title": "Enviar reporte",
+      "title": "Enviar reporte de abril",
+      "status": "pendiente",
+      "assignedTo": "2"
+    },
+    {
+      "id": "UIoAVfEQQmw",
+      "projectId": null,
+      "title": "Entrega de primer proyecto de REACT",
+      "status": "pendiente",
+      "assignedTo": "1"
+    },
+    {
+      "id": "p8E3efKooKE",
+      "projectId": "fni0TgAGFLY",
+      "title": "Crear módulo de fechas en el sistema de gestión de proyectos",
       "status": "pendiente",
       "assignedTo": "2"
     }
