@@ -201,7 +201,7 @@ export default function TickTickDashboard() {
           <header className="flex items-center justify-between mb-8 px-2">
             <h2 className="text-xl font-bold text-gray-950 flex items-center gap-2">
                 <span className="w-3 h-3 bg-blue-600 rounded-full"></span>
-                EMKT <span className="text-blue-600 font-medium">Hub</span>
+                UDB <span className="text-blue-600 font-medium">PANEL</span>
             </h2>
             {/* Botón de cerrar solo en móvil */}
             <button className="md:hidden text-gray-500 hover:text-gray-800" onClick={() => setIsMobileMenuOpen(false)}>
