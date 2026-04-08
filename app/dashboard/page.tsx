@@ -215,7 +215,7 @@ export default function TickTickDashboard() {
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!filterProjectId && currentView === 'tasks' ? "bg-blue-100/60 text-blue-800" : "text-gray-700 hover:bg-gray-200/50"}`}
             >
               <span className={!filterProjectId && currentView === 'tasks' ? "text-blue-600" : "text-gray-400"}><IconInbox /></span>
-              Inbox
+              Todos
               <span className="ml-auto text-xs font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
                 {activePendingTasksCount}
               </span>

@@ -36,7 +36,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <form onSubmit={handleLogin} className="bg-white p-10 rounded-xl shadow-xl w-full max-w-sm border border-gray-200">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-wide">EMKT <span className="text-blue-600">Hub</span></h1>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-wide">UDB <span className="text-blue-600">PANEL</span></h1>
           <p className="text-gray-500 text-sm mt-2">Acceso restringido</p>
         </div>
         
