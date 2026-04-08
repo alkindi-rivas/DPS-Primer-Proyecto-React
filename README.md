@@ -1,4 +1,4 @@
-# 🚀 UDB PANEL - Panel de Gestión de Operaciones
+# 🚀 UDB PANEL - Gestión de Operaciones
 
 Creación de aplicación con React para la gestión de proyectos y control de tareas, responsive y control de roles.
 
@@ -47,4 +47,4 @@ npx json-server --watch db.json --port 3001
 npm run dev
 \`\`\`
 
-> 💡 **Nota Estratégica:** El frontend estará disponible en `http://localhost:3000`. Para visualizar las opciones del json estará disponible en `http://localhost:3001` Recuerde usar las credenciales configuradas en el archivo `db.json` para acceder como gerente o colaborador.
+> 💡 **Nota:** El frontend estará disponible en `http://localhost:3000`. Para visualizar las opciones del json estará disponible en `http://localhost:3001` Recuerde usar las credenciales configuradas en el archivo `db.json` para acceder como gerente o colaborador.
