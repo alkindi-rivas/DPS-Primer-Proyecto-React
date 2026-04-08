@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
+
+// Íconos SVG para los menús
 const IconInbox = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v5m16 0h-2.586a1 1 0 01-.707-.293l-2.414-2.414a1 1 0 00-.707-.293h-3.172a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293H4" /></svg>;
 const IconProject = () => <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>;
 const IconPlus = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
@@ -14,28 +16,34 @@ const IconUser = () => <svg className="w-3 h-3" fill="none" stroke="currentColor
 const IconMenu = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
 const IconClose = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
 
-export default function TickTickDashboard() {
+export default function Dashboard() {
+
+  // Constantes para el control de usuarios, proyectos, tareas y los usuarios del json
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [usersDb, setUsersDb] = useState<any[]>([]); 
   
+  // Constantes para controlar la vista de las tareas activas y archivadas
   const [currentView, setCurrentView] = useState<"tasks" | "archived">("tasks");
   const [filterProjectId, setFilterProjectId] = useState<string | null>(null); 
 
+  // Constantes para crear el título de la tarea, a que proyecto pertenece la tarea y a que usuario está asignada la tarea
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskProject, setNewTaskProject] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState(""); 
   
+  // Constantes para editar el título, proyecto y usuario asignado de la tarea
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
   const [editTaskProjectId, setEditTaskProjectId] = useState("");
   const [editTaskAssignee, setEditTaskAssignee] = useState(""); 
 
+  // Constantes para controlar la creación y nombre de cada proyecto
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
 
-  // Estado para Menú Móvil
+  // Estado para menu móvil
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const router = useRouter();
