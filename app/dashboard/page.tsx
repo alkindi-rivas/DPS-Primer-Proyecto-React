@@ -48,36 +48,39 @@ export default function Dashboard() {
 
   const router = useRouter();
 
+  // Validación de sesiones de la aplicación
   useEffect(() => {
     const session = localStorage.getItem("userSession");
     if (!session) {
-      router.push("/"); 
+      router.push("/"); //Si no existe la sesión, regresa el usuario a la raíz del proyecto
     } else {
       const parsedUser = JSON.parse(session);
       setUser(parsedUser);
-      fetchData(parsedUser.role, parsedUser.id);
+      fetchData(parsedUser.role, parsedUser.id); // Reconoce los datos almacenados
     }
   }, [router]);
 
+  // Función asíncrona
   const fetchData = async (userRole: string, userId: string) => {
     try {
       const [projRes, taskRes, usersRes] = await Promise.all([
-        axios.get("http://localhost:3001/projects"),
-        axios.get("http://localhost:3001/tasks"),
-        axios.get("http://localhost:3001/users")
+        axios.get("http://localhost:3001/projects"), // Extracción de información de proyectos 
+        axios.get("http://localhost:3001/tasks"), // Extracción de información de tareas
+        axios.get("http://localhost:3001/users") // Extracción de información de usuarios
       ]);
       setProjects(projRes.data);
       setUsersDb(usersRes.data);
       
-      if (userRole === "gerente") {
+      // Control de roles
+      if (userRole === "gerente") { // Gerente
         setTasks(taskRes.data);
       } else {
-        const filteredTasks = taskRes.data.filter((t: any) => t.assignedTo === userId);
+        const filteredTasks = taskRes.data.filter((t: any) => t.assignedTo === userId); // Colaborador
         setTasks(filteredTasks);
       }
     } catch (error) { console.error(error); }
   };
-
+  // Creación de tarea
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle) return;
@@ -88,7 +91,7 @@ export default function Dashboard() {
     
     const targetProject = filterProjectId || newTaskProject;
     const assignee = newTaskAssignee || user.id; 
-
+    // Construcción de JSON
     const newTask = { 
         id: Date.now().toString(), 
         projectId: targetProject, 
@@ -98,29 +101,30 @@ export default function Dashboard() {
     };
     
     try {
-      const res = await axios.post("http://localhost:3001/tasks", newTask);
+      const res = await axios.post("http://localhost:3001/tasks", newTask); // Actualización del listado de tareas
+      // Limpieza de campos
       setTasks([...tasks, res.data]); 
       setNewTaskTitle(""); 
       setNewTaskProject(""); 
       setNewTaskAssignee("");
     } catch (error) { console.error(error); }
   };
-
+  // Actualización de tareas
   const handleToggleStatus = async (task: any) => {
-    const newStatus = task.status === 'pendiente' ? 'completado' : 'pendiente';
+    const newStatus = task.status === 'pendiente' ? 'completado' : 'pendiente'; //Cambio de estado
     try {
-      setTasks(tasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
-      await axios.patch(`http://localhost:3001/tasks/${task.id}`, { status: newStatus });
+      setTasks(tasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t)); // Actualización visual
+      await axios.patch(`http://localhost:3001/tasks/${task.id}`, { status: newStatus }); // Actualización en base de datos (JSON)
     } catch (error) { 
         console.error(error);
-        setTasks(tasks.map(t => t.id === task.id ? { ...t, status: task.status } : t));
+        setTasks(tasks.map(t => t.id === task.id ? { ...t, status: task.status } : t)); // Si se falla se revierte el estado
     }
   };
-
+  // Eliminar tarea
   const handleDeleteTask = async (taskId: string) => {
     try { await axios.delete(`http://localhost:3001/tasks/${taskId}`); setTasks(tasks.filter(t => t.id !== taskId)); } catch (error) { console.error(error); }
   };
-
+  //Funciones para iniciar, cancelar y guardar la edición de los textos de la tarea.
   const startEditingTask = (task: any) => { 
       setEditingTaskId(task.id); 
       setEditTaskTitle(task.title); 
@@ -142,17 +146,17 @@ export default function Dashboard() {
         cancelEditingTask();
       } catch (error) { console.error(error); }
   };
-
+  // Creación de proyectos
   const handleQuickAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) { setIsAddingProject(false); return; }
-    try {
+    try { //Control de proyectos que no inicien archivados
       const res = await axios.post("http://localhost:3001/projects", { id: Date.now().toString(), name: newProjectName.trim(), isArchived: false });
       setProjects([...projects, res.data]);
       setNewProjectName(""); setIsAddingProject(false); 
     } catch (error) { console.error(error); }
   };
-
+  // Función para archivar los proyectos
   const handleArchiveProject = async (projectId: string) => {
       if (!window.confirm("¿Archivar este proyecto? Dejará de verse en la lista principal.")) return;
       try {
@@ -161,14 +165,14 @@ export default function Dashboard() {
           if (filterProjectId === projectId) { setFilterProjectId(null); setCurrentView("tasks"); }
       } catch (error) { console.error(error); }
   };
-
+  // Restauración de proyecto
   const handleRestoreProject = async (projectId: string) => {
       try {
-          const res = await axios.patch(`http://localhost:3001/projects/${projectId}`, { isArchived: false });
+          const res = await axios.patch(`http://localhost:3001/projects/${projectId}`, { isArchived: false }); //Cambio de estado del proyecto
           setProjects(projects.map(p => p.id === projectId ? { ...p, ...res.data } : p));
       } catch (error) { console.error(error); }
   };
-
+  // Eliminación permanente del proyecto
   const handlePermanentDeleteProject = async (projectId: string) => {
       if (!window.confirm("⚠️ ¿ELIMINAR DEFINITIVAMENTE? Esta acción no se puede deshacer y las tareas asociadas quedarán huérfanas.")) return;
       try {
@@ -176,26 +180,27 @@ export default function Dashboard() {
           setProjects(projects.filter(p => p.id !== projectId));
       } catch (error) { console.error(error); }
   };
-
+  //Pequeña pantalla de carga
   if (!user) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-blue-600 font-bold uppercase tracking-widest">Iniciando sistema...</div>;
-
+  // Filtros del sistema
   const activeProjects = projects.filter(p => !p.isArchived);
   const archivedProjects = projects.filter(p => p.isArchived);
-
+  //Filtro de tarea dependiendo en el proyecto que estemos
   const visibleTasks = tasks
     .filter(t => {
       if (filterProjectId) return t.projectId === filterProjectId;
       else return activeProjects.some(p => p.id === t.projectId);
     })
-    .sort((a,b) => a.status === 'completado' ? 1 : -1); 
-
+    .sort((a,b) => a.status === 'completado' ? 1 : -1); // Muuestra todas las tareas completas al final de la lista
+  
   const activeProjectName = filterProjectId ? projects.find(p => p.id === filterProjectId)?.name : "Inbox";
+  //Notificación de la cantidad de tareas pendientes
   const activePendingTasksCount = tasks.filter(t => t.status === 'pendiente' && activeProjects.some(p => p.id === t.projectId)).length;
 
   return (
     <div className="min-h-screen bg-[#fcfcfc] text-gray-900 flex font-sans antid">
       
-      {/* OVERLAY PARA MÓVIL */}
+      {/* Menú móvil */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
@@ -203,7 +208,7 @@ export default function Dashboard() {
         ></div>
       )}
 
-      {/* SIDEBAR RESPONSIVO */}
+      {/* Nenú Responsive*/}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#f4f4f4] border-r border-gray-200 p-4 flex flex-col justify-between h-screen overflow-y-auto transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex-1 flex flex-col">
           <header className="flex items-center justify-between mb-8 px-2">
