@@ -27,24 +27,16 @@ Creación de aplicación con React para la gestión de proyectos y control de ta
 Para ejecutar este entorno operativo en tu máquina local y probar la persistencia de datos, sigue exactamente estos pasos en tu terminal:
 
 **1. Clonar el repositorio y acceder al directorio:**
-\`\`\`bash
 git clone [https://github.com/alkindi-rivas/DPS-Primer-Proyecto-React.git]
 cd [DPS-Primer-Proyecto-React]
-\`\`\`
 
 **2. Instalar dependencias del sistema:**
-\`\`\`bash
 npm install
-\`\`\`
 
 **3. Levantar el servidor de Base de Datos:**
-\`\`\`bash
 npx json-server --watch db.json --port 3001
-\`\`\`
 
 **4. Levantar la Interfaz Gráfica:**
-\`\`\`bash
 npm run dev
-\`\`\`
 
 > 💡 **Nota:** El frontend estará disponible en `http://localhost:3000`. Para visualizar las opciones del json estará disponible en `http://localhost:3001` Recuerde usar las credenciales configuradas en el archivo `db.json` para acceder como gerente o colaborador.

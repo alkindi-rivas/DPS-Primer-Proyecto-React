@@ -23,24 +23,22 @@
       "name": "Empresa - Operaciones"
     },
     {
-      "id": "fni0TgAGFLY",
-      "name": "DPS",
+      "id": "mp5k8jnIKxg",
+      "name": "Ejemplo de proyecto",
+      "isArchived": false
+    },
+    {
+      "id": "OWiGxFAUess",
+      "name": "Proyecto #1",
       "isArchived": false
     }
   ],
   "tasks": [
     {
-      "id": "1",
-      "projectId": "1",
-      "title": "Diseñar Dashboard",
-      "status": "pendiente",
-      "assignedTo": "2"
-    },
-    {
       "id": "2",
       "projectId": "2",
       "title": "Enviar reporte de abril",
-      "status": "pendiente",
+      "status": "completado",
       "assignedTo": "2"
     },
     {
@@ -49,6 +47,41 @@
       "title": "Entrega de primer proyecto de REACT",
       "status": "pendiente",
       "assignedTo": "1"
+    },
+    {
+      "id": "ZGLzT6o_X-w",
+      "projectId": "mp5k8jnIKxg",
+      "title": "Presentación de tarea del primer proyecto de React",
+      "status": "pendiente",
+      "assignedTo": "2"
+    },
+    {
+      "id": "8AznribcA60",
+      "projectId": "mp5k8jnIKxg",
+      "title": "Entrega de tarea final",
+      "status": "pendiente",
+      "assignedTo": "1"
+    },
+    {
+      "id": "2poVSSZPVSk",
+      "projectId": null,
+      "title": "Preparación de exposición para defensa de proyecto React",
+      "status": "pendiente",
+      "assignedTo": "1"
+    },
+    {
+      "id": "tT1ombvrUNo",
+      "projectId": null,
+      "title": "Preparación de exposición para defensa de proyecto React",
+      "status": "pendiente",
+      "assignedTo": "1"
+    },
+    {
+      "id": "BE6l-AP8lSg",
+      "projectId": null,
+      "title": "Crear tarea  de ejemplo",
+      "status": "completado",
+      "assignedTo": "2"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
